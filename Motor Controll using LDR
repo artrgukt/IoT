@@ -1,0 +1,49 @@
+int lm1 = 6;
+int lm2 = 5;
+int rm1 = 11;
+int rm2 = 12;
+int ldr = A0;
+int ldr_value;
+int ldr_value2 = 100;
+
+void setup() {
+  // put your setup code here, to run once:
+  Serial.begin(9600);
+  pinMode(lm1,OUTPUT);
+  pinMode(lm2,OUTPUT);
+  pinMode(rm1,OUTPUT);
+  pinMode(rm2,OUTPUT);
+  pinMode(ldr,INPUT);
+
+}
+
+void loop() {
+    ldr_value = analogRead(ldr);
+    Serial.println(ldr_value);
+    if(ldr_value > ldr_value2){
+         analogWrite(lm1, 200);
+         digitalWrite(lm2, 0);
+         analogWrite(rm1, 200);
+         digitalWrite(rm2, 0);
+         delay(1000);
+         analogWrite(lm1, 200);
+         digitalWrite(lm2, 0);
+         analogWrite(rm1, 200);
+         digitalWrite(rm2, 0);
+         delay(1000);
+         analogWrite(lm1, 200);
+         digitalWrite(lm2, 0);
+         analogWrite(rm1, 200);
+         digitalWrite(rm2, 0);
+      
+    }
+    delay(1000);
+    
+    digitalWrite(lm1, 0);
+    digitalWrite(lm2, 0);
+    analogWrite(rm1, 200);
+    digitalWrite(rm2, 0);
+    delay(2000);
+    
+
+}
