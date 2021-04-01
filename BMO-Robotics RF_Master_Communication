@@ -1,0 +1,128 @@
+#include <RF24.h>
+#include <RF24Network.h>  
+#include <SPI.h>
+
+RF24 radio(7, 8);               // nRF24L01 (CE,CSN)
+RF24Network network(radio);      // Include the radio in the network
+const uint16_t this_node = 00;   // Address of this node in Octal format ( 04,031, etc)
+const uint16_t node01 = 01;  
+const uint16_t node02 = 02;
+long int bot1[3];
+long int bot2[3];
+long int data[3] = {01,02,03};
+long int ldr_val,ldr = A0;
+
+void setup() {
+  SPI.begin();
+  radio.begin();
+  network.begin(90, this_node);  //(channel, node address)
+  radio.setDataRate(RF24_2MBPS);
+  pinMode(ldr,INPUT);
+  Serial.begin(9600);
+}
+
+
+void loop() {
+       ldr_val = analogRead(ldr);
+       data[2] = ldr_val;
+       for(int i=0;i<3;i++){
+              network.update();
+              if ( network.available() ) {     // Is there any incoming data?
+                        RF24NetworkHeader header;
+                        long int incomingData;
+                        network.read(header, &incomingData, sizeof(incomingData)); // Read the incoming data
+                        if (header.from_node == node01){
+                            bot1[i] = incomingData;
+                            //Serial.println(bot1[i]);
+                        }
+                        else if (header.from_node == node02){
+                            bot2[i] = incomingData;
+                            //Serial.println(bot2[i]);
+                        }
+                        else {
+                        Serial.println("Not Recived The Data");
+                        }
+              
+         
+             }
+       }
+       delay(100);
+
+       
+        for(int i=0;i<3;i++){
+              network.update();
+              if ( network.available() ) {     // Is there any incoming data?
+                        RF24NetworkHeader header;
+                        long int incomingData;
+                        network.read(header, &incomingData, sizeof(incomingData)); // Read the incoming data
+                        if (header.from_node == node01){
+                            bot1[i] = incomingData;
+                            //Serial.println(bot1[i]);
+                        }
+                        else if (header.from_node == node02){
+                            bot2[i] = incomingData;
+                            //Serial.println(bot2[i]);
+                        }
+                        else {
+                        Serial.println("Not Recived The Data");
+                        }
+              
+         
+             }
+       }     
+      
+       delay(100);  //-----------------
+
+        for (int i=0;i<3;i++){
+          network.update();
+          RF24NetworkHeader header(node01);     // (Address where the data is going)
+          network.write(header, &data[i], sizeof(data)); // Send the data
+          //Serial.println("Text Transmitted ");
+          
+        }
+        
+        
+        delay(200);
+         for (int i=0;i<3;i++){
+          RF24NetworkHeader header(node01);     // (Address where the data is going)
+          network.write(header, &bot2[i], sizeof(data)); // Send the data
+          //Serial.println("Text Transmitted ");
+          //Serial.println(bot2[i]);
+          
+        }
+          
+          
+        
+        delay(100);
+        
+       for (int i=0;i<3;i++){
+          network.update();
+          RF24NetworkHeader header(node02);     // (Address where the data is going)
+          network.write(header, &data[i], sizeof(data)); // Send the data
+          //Serial.println("Text Transmitted ");
+          
+        }
+        
+        
+        delay(200);
+         for (int i=0;i<3;i++){
+          network.update();
+          RF24NetworkHeader header(node02);     // (Address where the data is going)
+          network.write(header, &bot1[i], sizeof(data)); // Send the data
+          //Serial.println("Text Transmitted ");
+          //Serial.println(bot1[i]);
+          
+        }
+
+    Serial.println("------");
+    for(int i=0;i<3;i++){
+            Serial.println(bot1[i]);
+            
+       }
+    for(int i=0;i<3;i++){
+            Serial.println(bot2[i]);
+           
+       }
+    
+  
+}
