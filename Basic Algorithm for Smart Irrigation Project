@@ -1,0 +1,181 @@
+int crop; //Type of crop
+int M1 = 8;  //Motor pin1
+int M2 = 7; // Motor pin2
+int en = 3;
+int MS = A0; // Moisture Sensor pin
+int LS1 = A1; //Level Sensor
+int LS2 = A2; //Level Sensor
+int readings; // Moisture Sensor readings
+int level1;  //Level 1 Sensor readings
+int level2;  // Level 2 Sensor readings
+
+void setup() {
+  
+  pinMode(M1,OUTPUT);
+  pinMode(M2,OUTPUT);
+  pinMode(MS,INPUT);
+  pinMode(LS1,INPUT);
+  pinMode(LS2,INPUT);
+  Serial.begin(9600);
+
+}
+
+void loop() {
+  
+int w=4000;  //Water content for total crop interms of ml.
+int x; //the amount water that can be supplied by motor
+
+
+
+int s1 = (w*5)/100;
+int s2 = (w*10)/100;
+int s3 = (w*15)/100;
+int s4 = (w*20)/100;
+int s5 = (w*25)/100;
+int s6 = (w*30)/100;
+int s7 = (w*40)/100;
+
+int r[5] = {s1,s4,s7,s6,s1};
+int s[5] = {s4,s5,s7,s2,s1};
+int wt[5] = {s1,s4,s7,s4,s1};
+int p[5] = {s1,s4,s7,s4,s3};
+int c[5] = {s1,s4,s7,s4,s3};
+
+if(Serial.available()>0){
+  crop = Serial.read();
+  if(crop == '1'){
+    for(int r=1;r<6;r++){
+      switch(r){
+                  case 1: for(int j=0;j<60;j++){    //stage 1 for moisture sensor
+                    Serial.print("Stage 1 :");
+                    Serial.println(j);
+                    readings = analogRead(MS);
+                    Serial.print("Moisture =");
+                    Serial.print(readings);
+                    level1 = analogRead(LS1);
+                    Serial.print(", Level Sensor 1 =");
+                    Serial.print(level1);
+                    level2 = analogRead(LS2);
+                    Serial.print(", Level Sensor 2 =");
+                    Serial.println(level2);
+                      if(readings > 350){
+                        digitalWrite(M1,1);
+                        digitalWrite(M2,0);
+                        analogWrite(en,150);
+                      }
+                      else{
+                        digitalWrite(M1,0);
+                        digitalWrite(M2,0);
+                      }
+                      delay(1000);
+                  }
+                  break;
+
+                  case 2: for(int j=0;j<60;j++){   //stage 2 : (level sensor 1 ,level 1)
+                    Serial.print("Stage 2:");
+                    Serial.println(j);
+                    readings = analogRead(MS);
+                    Serial.print("Moisture =");
+                    Serial.print(readings);
+                    level1 = analogRead(LS1);
+                    Serial.print(", Level Sensor 1 =");
+                    Serial.print(level1);
+                    level2 = analogRead(LS2);
+                    Serial.print(", Level Sensor 2 =");
+                    Serial.println(level2);
+                      if(level1<190){
+                        digitalWrite(M1,1);
+                        digitalWrite(M2,0);
+                        analogWrite(en,150);
+                      }
+                      else{
+                        digitalWrite(M1,0);
+                        digitalWrite(M2,0);
+                      }
+                      delay(1000);
+                  }
+                  break;
+
+                  case 3: for(int j=0;j<60;j++){  //stage 3 : (level sensor 1 ,level 2)
+                    Serial.print("Stage 3:");
+                    Serial.println(j);
+                    readings = analogRead(MS);
+                    Serial.print("Moisture =");
+                    Serial.print(readings);
+                    level1 = analogRead(LS1);
+                    Serial.print(", Level Sensor 1 =");
+                    Serial.print(level1);
+                    level2 = analogRead(LS2);
+                    Serial.print(", Level Sensor 2 =");
+                    Serial.println(level2);
+                    if(level1<300){
+                      digitalWrite(M1,1);
+                      digitalWrite(M2,0);
+                      analogWrite(en,150);
+                    }
+                    else{
+                      digitalWrite(M1,0);
+                      digitalWrite(M2,0);
+                    }
+                    delay(1000);
+                  }
+                  break;
+
+                  case 4: for(int j=0;j<60;j++){  //stage 4 : (level sensor 2 ,level 1)
+                    Serial.print("Stage 4:");
+                    Serial.println(j);
+                    readings = analogRead(MS);
+                    Serial.print("Moisture =");
+                    Serial.print(readings);
+                    level1 = analogRead(LS1);
+                    Serial.print(", Level Sensor 1 =");
+                    Serial.print(level1);
+                    level2 = analogRead(LS2);
+                    Serial.print(", Level Sensor 2 =");
+                    Serial.println(level2);
+                    if(level2<190){
+                      digitalWrite(M1,1);
+                      digitalWrite(M2,0);
+                      analogWrite(en,150);
+                    }
+                    else{
+                      digitalWrite(M1,0);
+                      digitalWrite(M2,0);
+                    }
+                  }
+                  break;
+
+                  case 5: for(int i=0;i<60;i++){  //stage 5 : (level sensor 2 ,level 2)
+                    Serial.print("Stage 5:");
+                    Serial.println(i);
+                    readings = analogRead(MS);
+                    Serial.print("Moisture =");
+                    Serial.print(readings);
+                    level1 = analogRead(LS1);
+                    Serial.print(", Level Sensor 1 =");
+                    Serial.print(level1);
+                    level2 = analogRead(LS2);
+                    Serial.print(", Level Sensor 2 =");
+                    Serial.println(level2);
+                    if(level2<300){
+                      digitalWrite(M1,1);
+                      digitalWrite(M2,0);
+                      analogWrite(en,150);
+                    }
+                    else{
+                      digitalWrite(M1,0);
+                      digitalWrite(M2,0);
+                    }
+                  }
+                  break;
+                   
+    }
+   }
+    
+  }
+}
+
+
+
+
+}
