@@ -1,0 +1,460 @@
+#include<Wire.h>
+#include<LiquidCrystal.h>
+#include <SoftwareSerial.h>
+
+//-----------------0---------------------
+  //Changes in these values only fix the no of bots and bot index
+
+      //set the number of bots here
+          const int NoOfBots=3;
+        
+      //Bot index
+          const int id=0;
+        
+      //Coordinates of the bot
+          const double xCord=0;
+          const double yCord=0;
+        
+      //Gyro angle Factor
+          const double gyroFactor=1;
+        
+      //Step size Factor of this bot (time delay)
+          const int stepSize=1000;
+        
+      //Uv updation facotrs
+          const float b1=0.1;
+          const float b2=3;
+//-----------------0---------------------
+
+SoftwareSerial xbee(11, 12); // RX, TX
+
+//Light intensity of each bot
+  long ldr;
+  long Ldr[NoOfBots];
+
+//Coordinate values of each bot
+  double Xpos[NoOfBots],Ypos[NoOfBots];
+
+//Data recieved by each bot
+  long data[NoOfBots-1][10];
+
+//Uv values of each bot
+  long uv[NoOfBots];
+
+//Distances of each bot from this bot
+  double dist[NoOfBots];
+
+//Uv distribution of each bot
+  double share[NoOfBots];
+
+//Distance sum for each bot
+  double d_sum[NoOfBots];
+
+//Gyro (Lmate) angle
+  double teeta;
+
+//Bot indexes
+  int index[NoOfBots];
+
+//x and y values of this bot
+  double finalX,finalY;
+
+//gyro initialization constraints
+    const int MPU=0x68; //I2C address of MPU
+    int GyX,GyY,GyZ;
+    float yaw=0;
+    float v_yaw;
+    float a_yaw;
+    const int trigPin = 11;
+    const int echoPin = 10;
+
+//Procedure to measure the gyro angle
+  long angle(){
+     Wire.beginTransmission(MPU);
+     Wire.write(0x43); //starts with MPU register 43(GYRO_XOUT_H) 
+     Wire.endTransmission(false);
+     Wire.requestFrom(MPU,6,true); //requests 6 registers 
+     GyX=Wire.read()<<8|Wire.read();
+     GyY=Wire.read()<<8|Wire.read();
+     GyZ=Wire.read()<<8|Wire.read(); 
+     v_yaw=GyZ/293;
+     a_yaw=(v_yaw*0.045);
+     yaw= yaw + a_yaw;
+     Serial.print(" | yaw = "); 
+     Serial.println(yaw);
+     return (long)yaw;
+  }
+
+//Procedure to read the max of two ldr intensities of this bot
+  long calculate(){
+        long ldr1=analogRead(A0);
+        long ldr2=analogRead(A1);
+        return max(ldr1,ldr2);
+  }
+
+//Rotating motors in Anti-clockwise
+  void rotateForward(){
+    digitalWrite(2,LOW);
+    digitalWrite(3,HIGH);
+    digitalWrite(4,HIGH);
+    digitalWrite(5,LOW);
+  }
+
+//Rotating motors in Clockwise
+  void rotateBackward(){
+    digitalWrite(2,HIGH);
+    digitalWrite(3,LOW);
+    digitalWrite(4,LOW);
+    digitalWrite(5,HIGH);
+  }
+
+//Stopping motors movement
+  void stopbot(){
+    digitalWrite(2,LOW);
+    digitalWrite(3,LOW);
+    digitalWrite(4,LOW);
+    digitalWrite(5,LOW);
+  } 
+
+//Moving motors in Forward direction
+  void movebot(){
+      digitalWrite(2,HIGH);
+      digitalWrite(3,LOW);
+      digitalWrite(4,HIGH);
+      digitalWrite(5,LOW);
+  }
+
+void setup() {
+  // put your setup code here, to run once:
+
+      //Gyro Initialization and configuration
+          Wire.begin();
+          Wire.beginTransmission(MPU);
+          Wire.write(0x6B); //power management register 1
+          Wire.write(0);
+          Wire.endTransmission(true);
+   //Communication Configuration
+       Serial.begin(9600);
+       Serial.println( "Arduino started sending bytes via XBee" );
+       xbee.begin(9600);
+    
+    
+    //Index of each bot & UV initialization
+      for(int i=0;i<NoOfBots;i++){
+         index[i]=i;
+         uv[i]=10;
+      }
+    
+    //Declearing pinModes
+       pinMode(2,OUTPUT);
+       pinMode(3,OUTPUT);
+       pinMode(4,OUTPUT);
+       pinMode(5,OUTPUT);
+       pinMode(A0,INPUT);
+
+       Xpos[id]=xCord;
+       Ypos[id]=yCord;
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+//Making the gyro angle to zero
+      yaw=0;
+    
+    //Calculating ldr(fitness) of bot in the present location
+      ldr=0;
+    
+    //Measuring the max light intensity in one revolution  
+      while(1){
+          angle();
+          if(yaw<=(360*gyroFactor)){
+            rotateForward();
+            ldr=max(ldr,calculate());
+          }   
+          else{
+            stopbot();
+            yaw=0;
+            break;
+          }
+      }
+    
+    //Storing the max light intensity  
+      Ldr[id]=ldr;
+    
+    //Sending the intensity, x and y coordinates of this bot to remaining
+      communication();
+    
+    //Updating the uv value of this bot
+      UvUpdation();
+    
+    //Finding the distribution of light intensity from each bot  
+      UvDistribution();
+    
+    //Choosing the lmate and movement towards it if it exists  
+      LmateSelection();
+      
+      delay(5000);
+}
+
+//Procedure to update the uv value of this bot
+  void updatePosition(){
+      Xpos[id]=Xpos[id]+(3.42*cos(((90+teeta)*PI)/180));
+      Ypos[id]=Ypos[id]+(3.42*sin(((90+teeta)*PI)/180));
+      Serial.print("Updated X-position:");
+      Serial.println(Xpos[id]);
+      Serial.print("Updated Y-position:");
+      Serial.println(Ypos[id]);
+  }
+
+//Procedure to choose lmate for this bot
+  void LmateSelection(){
+        int count=0;
+        int lmate=-1;
+            
+        for(int i=0;i<NoOfBots;i++){
+          lmate=index[i];
+          if(Ldr[id]<Ldr[lmate]){
+            count++;
+            break;
+          }
+        }
+
+        
+        if(count==0){
+          Serial.println("No Lmate");
+          delay(3000);
+        }
+        else{
+          Serial.print("Lmate:");
+          for(int i=0;i<NoOfBots;i++){
+            if(i==id){
+              continue;
+            }
+            if(lmate==(i+1)){
+              Serial.write(65+(i));
+            }
+          }
+          Serial.println();
+          
+      //measuring gyro (lmate) angle and printing in serail monitor
+          measureAngle(lmate);
+          Serial.print("Gyro angle:");
+          Serial.println(teeta);
+          
+      //rotating (lmate) angle in Anti-clockwise
+          while(1){
+            if(angle()<=(teeta*gyroFactor)){
+              rotateForward();
+            }
+            else{
+              stopbot();
+              break;
+            }
+          }
+          
+          delay(1000);
+          
+      //moving towards lmate
+          movebot();
+          delay(stepSize);
+          stopbot();
+          
+          delay(1000);
+      
+      //Rotating Anti-clockwise to get the initial orientation
+          while(1){
+            if(angle()<=360*gyroFactor){
+              rotateForward();
+            }
+            else{
+              yaw=0;
+              stopbot();
+              break;
+            }
+          }
+          
+      //Updating the bot positions    
+          updatePosition();
+         
+        }
+  }
+
+//Procedure to measure the gyro (lmate) angle
+  void measureAngle(int lmate){
+      double angle=(atan((Ypos[lmate]-Ypos[id])/(Xpos[lmate]-Xpos[id]))*180)/PI;
+      Serial.print("Angle:");
+      Serial.println(angle);
+      if(angle==90 && (Ypos[id]<Ypos[lmate]))
+          teeta=0;
+      else if(angle==-90 && (Ypos[id]>Ypos[lmate]))
+          teeta=180;
+      else if(angle<0 && (Xpos[id]<Xpos[lmate]))
+          teeta=270+angle;
+      else if(angle<0 && (Xpos[id]>Xpos[lmate]))
+          teeta=90+angle;
+      else if(angle>0 && (Xpos[id]<Xpos[lmate]))
+          teeta=270+angle;
+      else if(angle>0 && (Xpos[id]>Xpos[lmate]))
+          teeta=90+angle;
+      else if(angle==0 && (Xpos[id]<Xpos[lmate]))
+          teeta=270;
+      else if(angle==0 && (Xpos[id]>Xpos[lmate]))
+          teeta=90;
+  }
+
+//Procedure to update the uv of the bot
+  void UvUpdation(){
+      for(int i=0;i<NoOfBots;i++){
+        uv[i]=max(0,((b1*uv[i])+(b2*Ldr[i])));
+      }
+      Serial.println("Updated uv values:");
+      for(int i=0;i<NoOfBots;i++){
+        Serial.print(uv[i]);
+        Serial.print(" ");
+      }
+      Serial.println();
+  }
+
+//Procedure to find the distribution of light intensity from remaining
+void UvDistribution(){
+
+//Finding the distance inverse  
+  for(int i=0;i<NoOfBots;i++){
+    if(i==id)
+      dist[i]=0;
+    else{
+      dist[i]=(double)1/(sqrt(pow((Xpos[i]-Xpos[id]),2)+pow((Ypos[i]-Ypos[id]),2)));
+    }
+  }
+
+//Finding the distance sum of each bot  
+  for(int j=0;j<NoOfBots;j++){
+      double temp=0;
+      for(int k=0;k<NoOfBots;k++){
+         if(j!=id && j!=k){
+            temp+=(double)1/(sqrt(pow((Xpos[j]-Xpos[k]),2)+pow((Ypos[j]-Ypos[k]),2)));
+         }
+      }
+      d_sum[j]=temp;
+   }
+
+//Finding out the distribution from remaining bots
+  for(int i=0;i<NoOfBots;i++){
+    if(i==id){
+      share[i]=0;
+    }
+    else{
+       share[i]=(double)(uv[i]*dist[i])/d_sum[i];
+    }
+  }
+
+//Printing the uv distribution from remaining bots in serial monitor  
+  Serial.println("Uv Distribution:");
+  for(int i=0;i<NoOfBots;i++){
+    Serial.print(share[i]);
+    Serial.print(" ");
+  }
+  Serial.println();
+
+//Sorting the distributed values from remaining bots  
+  sort();
+}
+
+//procedure to sort the distributed uv values from remaining bots
+  void sort(){
+      for(int i=0;i<NoOfBots;i++)
+      {
+          for(int k=0;k<NoOfBots-1;k++)
+          {
+              if(share[k]<share[k+1])
+              {
+                    double t=share[k];
+                    share[k]=share[k+1];
+                    share[k+1]=t;
+                    t=index[k];
+                    index[k]=index[k+1];
+                    index[k+1]=t;  
+              }
+          }  
+      }
+  
+    //printing the distributed values after sorting    
+      Serial.println("Uv Distribution after sorting:");
+      for(int i=0;i<NoOfBots;i++){
+        Serial.print(share[i]);
+        Serial.print(" ");
+        Serial.println(index[i]);
+      }
+      Serial.println();
+  }
+
+//Procedure to send and recieve ldr,x and y values using xbee
+  void communication(){
+   //refers to the index of each bot
+        int index=0;
+      
+   //x and y positions of this bot  
+        long x=(round(Xpos[id]*10));
+        long y=(round(Ypos[id]*10));
+      
+   //Recieving the data from other bots before sending this values to remaining
+      for(int j=0;j<id;j++){
+        while (xbee.available()==0);
+          for (int i=0; i<=9; i++)
+          {
+            data[index][i]=xbee.read()-'0';
+            Serial.println(data[index][i]);
+          }
+          index++;
+       }
+      
+   //Sending the data to remaining bots  
+        long transmit=(((x*1000)+y)*1000)+Ldr[id];
+        transmit+=1000000000;
+        xbee.print( transmit);
+      
+   //Printing data of this bot in serial monitor
+        Serial.print("The following is the number being transmitted:");
+        Serial.println(transmit);
+      
+   //Recieving the data from other bots after sending this values to remaining
+       for(int j=id+1;j<NoOfBots;j++){
+          while (xbee.available()==0);
+          for (int i=0; i<=9; i++)
+          {
+            data[index][i]=xbee.read()-'0';
+            Serial.println(data[index][i]);
+          }
+          index++;
+       }
+      
+   //initializing the x and y coordinates of other bots using data sent by them
+       for(int j=0;j<NoOfBots;j++){
+          if(j==id){
+            continue;
+          }
+          else{
+            Xpos[j]=(double)(((data[j-1][1]*100)+data[j-1][2]*10)+data[j-1][3])/10;
+            Ypos[j]=(double)(((data[j-1][4]*100)+data[j-1][5]*10)+data[j-1][6])/10;
+            Ldr[j]=(((data[j-1][7]*100)+data[j-1][8]*10)+data[j-1][9]);
+          }
+       }
+      
+   //Printing the ldr, x and y of each bot
+       Serial.println("Recieved data");
+       for(int j=0;j<NoOfBots;j++){
+         Serial.print("Xpos");
+         Serial.write(65+j);
+         Serial.print(":");
+         Serial.println(Xpos[0]);
+         Serial.print("Ypos");
+         Serial.write(65+j);
+         Serial.print(":");
+         Serial.println(Ypos[0]);
+         Serial.print("Ldr");
+         Serial.write(65+j);
+         Serial.print(":");
+         Serial.println(Ldr[0]);
+      }
+      Serial.println();
+  }
