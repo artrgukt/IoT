@@ -1,0 +1,35 @@
+#define lm1 6
+#define lm2 7
+#define rm1 8
+#define rm2 9
+
+
+void setup() {
+  pinMode(lm1, OUTPUT);
+  pinMode(lm2, OUTPUT);
+  pinMode(rm1, OUTPUT);
+  pinMode(rm2, OUTPUT);
+  // Set initial rotation direction
+  digitalWrite(lm1, LOW);
+  digitalWrite(lm2, LOW);
+  digitalWrite(rm1, LOW);
+  digitalWrite(rm2, LOW);
+ 
+ 
+}
+
+void loop() { 
+    digitalWrite(lm1, HIGH);
+    digitalWrite(lm2, LOW);
+    digitalWrite(rm1, HIGH);
+    digitalWrite(rm2, LOW);
+    
+    delay(20);
+
+    digitalWrite(lm1, LOW);
+    digitalWrite(lm2, HIGH);
+    digitalWrite(rm1, LOW);
+    digitalWrite(rm2, HIGH);
+ 
+    
+}
