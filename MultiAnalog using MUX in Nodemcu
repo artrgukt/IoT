@@ -1,0 +1,35 @@
+int a = D0;
+int b = D1;
+int c = D2;
+int z = A0;
+int h ;
+void setup() {
+  // put your setup code here, to run once:
+  pinMode(b,OUTPUT);
+  pinMode(a,OUTPUT);
+  pinMode(c,OUTPUT);
+  pinMode(z,INPUT);
+  Serial.begin(9600);
+
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  digitalWrite(a,0);
+  digitalWrite(b,0);
+  digitalWrite(c,0);
+  h = analogRead(z);
+  Serial.print("full dip :");
+  Serial.println(h);
+  delay(300);
+  digitalWrite(a,1);
+  digitalWrite(b,1);
+  digitalWrite(c,0);
+  h = analogRead(z);
+  Serial.print("half dip :");
+  Serial.println(h);
+  delay(300);
+  
+  
+
+}
