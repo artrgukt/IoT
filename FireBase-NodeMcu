@@ -1,0 +1,42 @@
+// This is the Basic Code which will deals with the communication between NodeMcu and FireBase
+int a = D5;  //LED pin connected to D5 pin 
+int b;
+
+#include <ESP8266WiFi.h>  //Accessing Library file of wifi module
+#include <FirebaseArduino.h>  //Accessing Library file of Firebase module
+
+#define WIFI_SSID "Artrgukt"   //Assaign wifi name to a variable
+#define WIFI_PASSWORD "N151280"  //Assaign wifi password to another variable
+
+#define FIREBASE_HOST "iot-firebase-basicsdefaultrtdb.firebaseio.com/"   //Assaign firebase host(like username of your project) to a variable
+#define FIREBASE_AUTH "o3QC14G10g9fKqKSaXmiiGNRqMjEHwij4MwF"    //Assaign firebase authentication(like password of your project) to a variable
+
+
+void setup() {
+  Serial.begin(9600);      //Initialization of Serial Monitor
+  pinMode(a, OUTPUT);     // Initialize the LED_BUILTIN pin as an output
+
+   // connect to wifi.
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);   //Start the wifi module
+  Serial.print("connecting");
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.print(".");
+    delay(500);
+  }
+  Serial.println();
+  Serial.print("connected: ");
+  Serial.println(WiFi.localIP());
+
+   Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);  //Start the Firebase module
+
+  
+}
+
+// the loop function runs over and over again forever
+void loop() {  
+  b = Firebase.getInt("Led"); //import the input from firebase
+  Serial.println(b);       //priniting the value which is taken from firebase
+  digitalWrite(a,b);
+  delay(5000);
+ 
+}
