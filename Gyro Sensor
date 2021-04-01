@@ -1,0 +1,60 @@
+#include<Wire.h>
+const int MPU=0x68; 
+int16_t AcX,AcY,AcZ,Tmp,GyX,GyY,GyZ,ax,asum,tsum;
+int16_t v = 0,vx,vy,teta,x=0,y=0;
+unsigned long time = 0;
+unsigned long time_clock = 0;
+int time_period = 0;
+
+void setup(){
+  Wire.begin();
+  Wire.beginTransmission(MPU);
+  Wire.write(0x6B); 
+  Wire.write(0);    
+  Wire.endTransmission(true);
+  Serial.begin(9600);
+}
+void loop(){
+  Wire.beginTransmission(MPU);
+  Wire.write(0x3B);  
+  Wire.endTransmission(false);
+  Wire.requestFrom(MPU,12,true);  
+  AcX=Wire.read()<<8|Wire.read();    
+  AcY=Wire.read()<<8|Wire.read();  
+  AcZ=Wire.read()<<8|Wire.read();  
+  GyX=Wire.read()<<8|Wire.read();  
+  GyY=Wire.read()<<8|Wire.read();  
+  GyZ=Wire.read()<<8|Wire.read();  
+  
+  Serial.print("Accelerometer: ");
+  Serial.print("X = "); Serial.print(AcX);
+  Serial.print(" | Y = "); Serial.print(AcY);
+  Serial.print(" | Z = "); Serial.println(AcZ); 
+
+ 
+  Serial.print("Gyroscope: ");
+  Serial.print("X = "); Serial.print(GyX);
+  Serial.print(" | Y = "); Serial.print(GyY);
+  Serial.print(" | Z = "); Serial.println(GyZ);
+  //Serial.println(" ");
+  time  = millis();
+  time_clock = time-time_period;
+  time_period = time;
+  Serial.print(" time :");
+  Serial.println(time_clock);
+  asum = pow(AcX,2) + pow(AcY,2) + pow(AcZ,2);
+  ax = sqrt(asum);
+  tsum = pow(GyX,2) + pow(GyY,2) + pow(GyZ,2);
+  teta = sqrt(tsum);
+  teta = sqrt(AcX);
+  v = v + (ax*time_clock);
+  vx = v*cos(teta);
+  vy = v*sin(teta);
+  x = vx*time_clock;
+  y = vy*time_clock;
+  Serial.print("Xpos : ");
+  Serial.println(x);
+  Serial.print("Ypos : ");
+  Serial.println(y);
+  delay(2000);
+}
