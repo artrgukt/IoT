@@ -1,0 +1,52 @@
+#include <Wire.h>
+
+
+
+//gyro initialization constraints
+    const int MPU=0x68; //I2C address of MPU
+    int GyX,GyY,GyZ;
+    float yaw=0;
+    float v_yaw;
+    float a_yaw;
+
+
+
+//Procedure to measure the gyro angle
+  long angle(){
+     Wire.beginTransmission(MPU);
+     Wire.write(0x43); //starts with MPU register 43(GYRO_XOUT_H) 
+     Wire.endTransmission(false);
+     Wire.requestFrom(MPU,6,true); //requests 6 registers 
+     GyX=Wire.read()<<8|Wire.read();
+     GyY=Wire.read()<<8|Wire.read();
+     GyZ=Wire.read()<<8|Wire.read(); 
+     v_yaw=GyZ/293;
+     a_yaw=(v_yaw*0.045);
+     yaw= yaw + a_yaw;
+     Serial.print(" | yaw = "); 
+     Serial.println(yaw);
+     return (long)yaw;
+  }
+
+
+//Setup start here for the bot
+void setup()  {
+
+    Serial.begin(9600);
+    //Gyro Initialization and configuration
+          Wire.begin();
+          Wire.beginTransmission(MPU);
+          Wire.write(0x6B); //power management register 1
+          Wire.write(0);
+          Wire.endTransmission(true);
+    
+    
+
+       
+}
+
+
+void loop()  {   
+      Serial.println(angle());
+    
+}
