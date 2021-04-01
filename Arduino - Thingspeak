@@ -1,0 +1,98 @@
+#include <ESP8266WiFi.h> // ESP8266WiFi.h library
+float moisture;
+float temparature;
+float humidity;
+int D3=4;
+int D4=5;
+ 
+const char* ssid     = "Artrgukt";
+const char* password = "N151280";
+const char* writeAPIKey = "6WHVOVBLRRRFM00";
+/* Provide TalkBack App credentials */
+const char* host = "api.thingspeak.com";
+const String talkBackAPIKey = "7EU6MKWCGDGUP0PK";
+const String talkBackID = "36750";
+WiFiClient client; // Initialize a Wi-Fi client
+
+String talkBackCommand,tbRequest;
+
+
+void setup() {
+  // Initialize sensor
+
+  Serial.begin(115200);
+  pinMode(D3, OUTPUT);
+  pinMode(D4, OUTPUT);
+
+//  Connect to WiFi network
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.println(".");
+    
+  }
+}
+
+void loop() {
+  int v=analogRead(A0);
+  moisture=map(v,0,1023,0,100);
+  Serial.print("Soil Moisture(in Percentage) = ");
+  Serial.print(moisture);
+  Serial.println("%");
+  delay(1000);
+
+  getTalkBack(); // Get the command issued from mobile app/web app
+
+if(talkBackCommand == "MOTOR ON") digitalWrite(D3, HIGH);
+if(talkBackCommand == "MOTOR OFF") digitalWrite(D3, LOW);
+
+
+delay(6000);
+ 
+
+// make TCP connections
+  WiFiClient client;
+  const int httpPort = 80;
+  if (!client.connect(host, httpPort)) {
+    return;
+  }
+
+  String url = "/update?key=";
+  url+=writeAPIKey;
+  url+="&field1=";
+  url+=String(moisture);
+  url+="\r\n";
+  
+  // Request to the server
+  client.print(String("GET ") + url + " HTTP/1.1\r\n" +
+               "Host: " + host + "\r\n" + 
+               "Connection: close\r\n\r\n");
+    delay(60000);
+}
+
+
+void getTalkBack()
+{
+tbRequest="GET /talkbacks/"+ talkBackID + "/commands/execute?api_key=" + talkBackAPIKey;
+Serial.println(tbRequest);
+
+if(!client.connected())
+{
+  if (client.connect("api.thingspeak.com", 80))
+  {
+    client.println(tbRequest);
+    if (client.connected())
+      {
+        talkBackCommand="";
+        while(client.connected() && !client.available()) delay(10); //waits for data
+        while (client.connected() || client.available())
+            {
+              talkBackCommand = client.readString();
+            }
+        Serial.print("Command -> ");
+        Serial.println(talkBackCommand);
+        Serial.println();
+      }
+  }
+}
+}
